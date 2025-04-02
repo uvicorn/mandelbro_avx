@@ -1,0 +1,148 @@
+#include "draw_mandelbrot.hpp"
+#include "SFML/Graphics.hpp"
+#include "types.hpp"
+#include "consts.hpp"
+#include <iostream>
+
+
+//
+// SCREEN PARAMS
+//
+
+
+ScreenParams* Screen_ctor(){
+    ScreenParams* screen = (ScreenParams* )malloc(sizeof(ScreenParams));
+
+    screen->center.x = DEFAULT_SCREEN_CENTER_X;
+    screen->center.y = DEFAULT_SCREEN_CENTER_Y;
+
+    screen->height = HEIGHT;
+    screen->width = WIDTH;
+
+    screen->scale = DEFAULT_ZOOM_SCALE;
+
+    return screen;
+}
+
+ScreenParams* Screen_dtor(ScreenParams* screen) {
+    free(screen);
+    return NULL;
+}
+
+//
+// PIXEL MATRIX
+//
+
+
+PixelMatrix PixelMatrix_ctor(unsigned width, unsigned height) {
+    PixelMatrix pixels = (PixelMatrix)malloc(width * height * PIXEL_SIZE * sizeof(uint8_t));
+
+    // check aligment for AVX intrinsics
+    assert(pixels != NULL);
+    assert(pixels % 16 == 0);
+
+    return pixels;
+}
+
+PixelMatrix PixelMatrix_dtor(PixelMatrix pixel_matrix){
+    free(pixel_matrix);
+    return NULL;
+}
+
+
+//
+// WINDOW EVENT HANDLER
+//
+
+
+void HandleWindowEvent(sf::RenderWindow& window, sf::Texture& texture, ScreenParams* screen, PixelMatrix* pixels) {
+    while (const std::optional event = window.pollEvent())
+    {
+        // Request for closing the window
+        if (event->is<sf::Event::Closed>())
+            window.close();
+
+        // Window resize
+        else if (const auto* resized = event->getIf<sf::Event::Resized>())
+        {
+            screen->width = resized->size.x;
+            screen->height = resized->size.y;
+
+            PixelMatrix_dtor(*pixels);
+            *pixels = PixelMatrix_ctor(screen->width, screen->height);
+
+            texture.resize({ screen->width, screen->height });
+        }
+
+        // Key pressed
+        else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
+        {
+            using KeyPressed = sf::Keyboard::Scancode;
+            switch (keyPressed->scancode) {
+                case KeyPressed::Escape:
+                    window.close();
+                    break;
+
+                case KeyPressed::Left:
+                    screen->center.x -= ZOOM_SCALE_MULTIPLIER * 1.5;
+                    break;
+                case KeyPressed::Right:
+                    screen->center.x += ZOOM_SCALE_MULTIPLIER * 1.5;
+                    break;
+                case KeyPressed::Up:
+                    screen->center.y -= screen->scale * HEIGHT;
+                    break;
+                case KeyPressed::Down:
+                    screen->center.y += screen->scale * HEIGHT;
+                    break;
+
+                case KeyPressed::Equal:
+                case KeyPressed::NumpadPlus:
+                    screen->scale /= ZOOM_SCALE_MULTIPLIER;
+                    break;
+
+                case KeyPressed::NumpadMinus:
+                case KeyPressed::Hyphen:
+                    screen->scale *= ZOOM_SCALE_MULTIPLIER;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        // Mouse scrolled
+        else if (const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
+            switch (mouseWheelScrolled->wheel)
+            {
+            case sf::Mouse::Wheel::Vertical:
+                screen->center.y -= mouseWheelScrolled->delta * ZOOM_SCALE_MULTIPLIER * 1.5;
+                break;
+            case sf::Mouse::Wheel::Horizontal:
+                screen->center.x -= mouseWheelScrolled->delta * ZOOM_SCALE_MULTIPLIER * 1.5;
+                break;
+            }
+        }
+
+        // Mouse clicked
+        if (const auto* mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>())
+        {
+            if (mouseButtonPressed->button == sf::Mouse::Button::Right)
+            {
+                screen->scale *= ZOOM_SCALE_MULTIPLIER;
+            }
+            else if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
+
+                screen->center.x = ((mouseButtonPressed->position.x - (double)screen->width / 2) * 0.75 + screen->center.x);
+                screen->center.y = ((mouseButtonPressed->position.y - (double)screen->height / 2) * 0.75 + screen->center.y);
+
+                screen->scale /= ZOOM_SCALE_MULTIPLIER;
+            }
+        }
+
+        // Unknown event
+        else {
+            continue;
+        }
+    }
+}

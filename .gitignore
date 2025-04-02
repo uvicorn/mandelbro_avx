@@ -1,0 +1,6 @@
+**/Debug/
+**/Release/
+**/x64/
+SFML-3.0.0/
+**/.vs/
+**/*.user
