@@ -16,10 +16,10 @@ ScreenParams* Screen_ctor(){
     screen->center.x = DEFAULT_SCREEN_CENTER_X;
     screen->center.y = DEFAULT_SCREEN_CENTER_Y;
 
-    screen->height = HEIGHT;
-    screen->width = WIDTH;
+    screen->scale    = DEFAULT_ZOOM_SCALE;
 
-    screen->scale = DEFAULT_ZOOM_SCALE;
+    screen->height   = HEIGHT;
+    screen->width    = WIDTH;
 
     return screen;
 }
@@ -54,6 +54,11 @@ PixelMatrix PixelMatrix_dtor(PixelMatrix pixel_matrix){
 // WINDOW EVENT HANDLER
 //
 
+// movements on the screen use the following formulas:
+// 
+// screen_x = (real_x - x_center)  / scale + (W / 2)
+// real_x   = (screen_x - (W / 2)) * scale + x_center
+
 
 void HandleWindowEvent(sf::RenderWindow& window, sf::Texture& texture, ScreenParams* screen, PixelMatrix* pixels) {
     while (const std::optional event = window.pollEvent())
@@ -78,22 +83,23 @@ void HandleWindowEvent(sf::RenderWindow& window, sf::Texture& texture, ScreenPar
         else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
         {
             using KeyPressed = sf::Keyboard::Scancode;
+
             switch (keyPressed->scancode) {
                 case KeyPressed::Escape:
                     window.close();
                     break;
 
                 case KeyPressed::Left:
-                    screen->center.x -= ZOOM_SCALE_MULTIPLIER * 1.5;
+                    screen->center.x -= PIXEL_SHIFT * screen->scale;
                     break;
                 case KeyPressed::Right:
-                    screen->center.x += ZOOM_SCALE_MULTIPLIER * 1.5;
+                    screen->center.x += PIXEL_SHIFT * screen->scale;
                     break;
                 case KeyPressed::Up:
-                    screen->center.y -= screen->scale * HEIGHT;
+                    screen->center.y -= PIXEL_SHIFT * screen->scale;
                     break;
                 case KeyPressed::Down:
-                    screen->center.y += screen->scale * HEIGHT;
+                    screen->center.y += PIXEL_SHIFT * screen->scale;
                     break;
 
                 case KeyPressed::Equal:
@@ -115,12 +121,12 @@ void HandleWindowEvent(sf::RenderWindow& window, sf::Texture& texture, ScreenPar
         else if (const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
             switch (mouseWheelScrolled->wheel)
             {
-            case sf::Mouse::Wheel::Vertical:
-                screen->center.y -= mouseWheelScrolled->delta * ZOOM_SCALE_MULTIPLIER * 1.5;
-                break;
-            case sf::Mouse::Wheel::Horizontal:
-                screen->center.x -= mouseWheelScrolled->delta * ZOOM_SCALE_MULTIPLIER * 1.5;
-                break;
+                case sf::Mouse::Wheel::Vertical:
+                    screen->center.y -= mouseWheelScrolled->delta * screen->scale * MOUSE_MOVEMENT_SPEED_SCALE;
+                    break;
+                case sf::Mouse::Wheel::Horizontal:
+                    screen->center.x -= mouseWheelScrolled->delta * screen->scale * MOUSE_MOVEMENT_SPEED_SCALE;
+                    break;
             }
         }
 
@@ -132,9 +138,9 @@ void HandleWindowEvent(sf::RenderWindow& window, sf::Texture& texture, ScreenPar
                 screen->scale *= ZOOM_SCALE_MULTIPLIER;
             }
             else if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
-
-                screen->center.x = ((mouseButtonPressed->position.x - (double)screen->width / 2) * 0.75 + screen->center.x);
-                screen->center.y = ((mouseButtonPressed->position.y - (double)screen->height / 2) * 0.75 + screen->center.y);
+                
+                screen->center.x += (mouseButtonPressed->position.x - (double)screen->width  / 2) * MOUSE_SMOOTH_CLICK_MULTIPLIER * screen->scale;
+                screen->center.y += (mouseButtonPressed->position.y - (double)screen->height / 2) * MOUSE_SMOOTH_CLICK_MULTIPLIER * screen->scale;
 
                 screen->scale /= ZOOM_SCALE_MULTIPLIER;
             }

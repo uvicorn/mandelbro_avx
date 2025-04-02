@@ -6,7 +6,6 @@
 
 
 int main() {
-
     ScreenParams* screen = Screen_ctor();
     PixelMatrix pixels = PixelMatrix_ctor(screen->width, screen->height);
 
@@ -23,7 +22,7 @@ int main() {
 
         // Construct Mandelbrot set slowly/fastly
 
-        // ConstructMandelbrot_Slow(pixels, screen);
+        //ConstructMandelbrot_Slow(pixels, screen);
         ConstructMandelbrot_AVX2(pixels, screen);
 
         texture.update(pixels);

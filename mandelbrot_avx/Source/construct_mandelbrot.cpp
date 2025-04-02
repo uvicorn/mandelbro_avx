@@ -16,13 +16,16 @@ void ConstructMandelbrot_AVX2(PixelMatrix pixels, const ScreenParams* screen) {
     assert(screen->height % 4 == 0 && screen->width % 4 == 0);
     assert(pixels % 16 == 0);
 
-
-    __m256d x0_delta = _mm256_set1_pd(-(double)screen->width  / 2 + screen->center.x);
-    __m256d y0_delta = _mm256_set1_pd(-(double)screen->height / 2 + screen->center.y);
-
-    x0_delta = _mm256_add_pd(_mm256_set_pd(0, 1, 2, 3), x0_delta);
-
     const __m256d scaler = _mm256_set1_pd(screen->scale);
+
+    __m256d x0_delta = _mm256_set1_pd(-(double)screen->width  / 2);
+    __m256d y0_delta = _mm256_set1_pd(-(double)screen->height / 2);
+    
+    x0_delta = _mm256_mul_pd(x0_delta, scaler);
+    y0_delta = _mm256_mul_pd(y0_delta, scaler);
+
+    x0_delta = _mm256_add_pd(x0_delta, _mm256_set1_pd(screen->center.x));
+    y0_delta = _mm256_add_pd(y0_delta, _mm256_set1_pd(screen->center.y));
 
     const __m256d radius_vector = _mm256_set1_pd(RADIUS);
 
@@ -31,15 +34,16 @@ void ConstructMandelbrot_AVX2(PixelMatrix pixels, const ScreenParams* screen) {
             unsigned pixel_index = (y_i * screen->width + x_i) * 4;
 
             // x x x x
-            __m256d x0 = _mm256_set1_pd(x_i);
+            __m256d x0 = _mm256_add_pd(_mm256_set_pd(0, 1, 2, 3), _mm256_set1_pd(x_i));
             __m256d y0 = _mm256_set1_pd(y_i);
 
-            // x x x x -> [x - x0_delta, x+1 - x0_delta, x+2 - x0_delta, x+3 - x0_delta]
-            x0 = _mm256_add_pd(x0, x0_delta);
-            y0 = _mm256_add_pd(y0, y0_delta);
+            // x0 = (x_i + i)*scale - W*scale/2 + x_center
 
             x0 = _mm256_mul_pd(x0, scaler);
             y0 = _mm256_mul_pd(y0, scaler);
+
+            x0 = _mm256_add_pd(x0, x0_delta);
+            y0 = _mm256_add_pd(y0, y0_delta);
 
             //
             // unroll first iteration=0 
@@ -117,16 +121,13 @@ void ConstructMandelbrot_AVX2(PixelMatrix pixels, const ScreenParams* screen) {
 
 
 void ConstructMandelbrot_Slow(PixelMatrix pixels, const ScreenParams* screen) {
-    double x0_delta = (double)screen->width  / 2 - screen->center.x;
-    double y0_delta = (double)screen->height / 2 - screen->center.y;
-
-
     for (unsigned y_i = 0; y_i < screen->height; y_i++) {
         for (unsigned x_i = 0; x_i < screen->width; x_i++) {
             unsigned pixel_index = (y_i * screen->width + x_i) * 4;
 
-            double x0 = ((double)x_i - x0_delta) * screen->scale;
-            double y0 = ((double)y_i - y0_delta) * screen->scale;
+            // x0 = (x_i - W/2) / zoom + x_center
+            double x0 = ((double)x_i - (double)screen->width  / 2) * screen->scale + screen->center.x;
+            double y0 = ((double)y_i - (double)screen->height / 2) * screen->scale + screen->center.y;
 
             double x = 0, y = 0, x2 = 0, y2 = 0;
 
