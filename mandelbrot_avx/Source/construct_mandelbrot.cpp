@@ -16,6 +16,7 @@ void ConstructMandelbrot_AVX2(PixelMatrix pixels, const ScreenParams* screen) {
     assert(screen->height % 4 == 0 && screen->width % 4 == 0);
     assert(pixels % 16 == 0);
 
+
     const __m256d scaler = _mm256_set1_pd(screen->scale);
 
     __m256d x0_delta = _mm256_set1_pd(-(double)screen->width  / 2);

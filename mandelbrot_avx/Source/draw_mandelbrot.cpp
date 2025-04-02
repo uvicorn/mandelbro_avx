@@ -70,7 +70,9 @@ void HandleWindowEvent(sf::RenderWindow& window, sf::Texture& texture, ScreenPar
         // Window resize
         else if (const auto* resized = event->getIf<sf::Event::Resized>())
         {
-            screen->width = resized->size.x;
+//            screen->scale *= (double)(resized->size.x * resized->size.y) / (screen->width * screen->height);
+
+            screen->width  = resized->size.x;
             screen->height = resized->size.y;
 
             PixelMatrix_dtor(*pixels);

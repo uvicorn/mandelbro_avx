@@ -3,9 +3,18 @@
 #include "types.hpp"
 #include "draw_mandelbrot.hpp"
 #include <iostream>
+#include "benchmarks.hpp"
 
 
-int main() {
+#define RUN_BENCHMARK
+
+int main(){
+
+//#ifdef RUN_BENCHMARK
+//    RunAllBenchmarks();
+//    exit(0);
+//#endif
+
     ScreenParams* screen = Screen_ctor();
     PixelMatrix pixels = PixelMatrix_ctor(screen->width, screen->height);
 
@@ -21,9 +30,11 @@ int main() {
         HandleWindowEvent(window, texture, screen, &pixels);
 
         // Construct Mandelbrot set slowly/fastly
-
-        //ConstructMandelbrot_Slow(pixels, screen);
-        ConstructMandelbrot_AVX2(pixels, screen);
+        #ifdef __AVX2__ 
+            ConstructMandelbrot_AVX2(pixels, screen);
+        #else
+            ConstructMandelbrot_Slow(pixels, screen);
+        #endif
 
         texture.update(pixels);
         window.clear();

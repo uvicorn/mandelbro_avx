@@ -31,6 +31,9 @@
 // number of iterations on each test case
 #define BENCHMARK_ITERATIONS 5
 
+// tests count for benchmarks
+#define TESTS_COUNT 100
+
 // sizeof RGBA pixel in SFML pixels array
 #define PIXEL_SIZE 4
 
