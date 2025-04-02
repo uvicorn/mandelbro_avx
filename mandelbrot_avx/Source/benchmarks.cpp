@@ -25,16 +25,14 @@ std::vector<uint64_t> Benchmark_Run(const std::vector<ScreenParams>& test_screen
 		uint64_t sum_time = 0;
 
 		for (unsigned iter = 0; iter < BENCHMARK_ITERATIONS; iter++) {
-			//clock_t start = clock();
 			uint64_t start = __rdtsc();
 			TestFunction(pixels, &test_screen);
-			uint64_t end = __rdtsc();
-			//clock_t end = clock();
+			uint64_t end   = __rdtsc();
 
 			sum_time += end - start;
 		}
 
-		std::cout << "SUM_TIME: " << sum_time << '\n';
+		std::cout << "SUM_CLOCKS: " << sum_time << '\n';
 
 		benchmark_results.push_back(sum_time);
 	}

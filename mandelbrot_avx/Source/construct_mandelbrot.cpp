@@ -9,6 +9,8 @@
 #include <iostream>
 
 
+#define ALL_ONE_BITS 0xFFFFFFFFFFFFFFFFull
+
 void ConstructMandelbrot_AVX2(PixelMatrix pixels, const ScreenParams* screen) {
     static_assert(1 < ITERATIONS && ITERATIONS < (2 << 16));
     static_assert(ITERATIONS == 256);
@@ -59,8 +61,8 @@ void ConstructMandelbrot_AVX2(PixelMatrix pixels, const ScreenParams* screen) {
             // <================================
 
             // save iterations for [x, x+1, x+2, x+3]
-            __m128i iter_add_mask;
-            __m128i iter_vector = _mm_set1_epi32(1);
+            __m256i iter_add_mask;
+            __m256i iter_vector = _mm256_set1_epi64x(ALL_ONE_BITS);
 
             unsigned iteration = 1;
 
@@ -68,22 +70,12 @@ void ConstructMandelbrot_AVX2(PixelMatrix pixels, const ScreenParams* screen) {
                 // true -> 0xffffff...; false -> 0x0000... 
                 __m256d cmp_vector = _mm256_cmp_pd(_mm256_add_pd(x2, y2), radius_vector, _CMP_LE_OQ);
 
-                int cmp_mask = _mm256_movemask_pd(cmp_vector);
-                assert(cmp_mask <= 0b1111);
-                // TODO: сейчас mm256d -> int -> mm128i, нужно переделать без промежуточного int
-
-                if (!cmp_mask) {
+                if (_mm256_testz_pd(cmp_vector, cmp_vector)) {
                     break;
                 }
-
-                iter_add_mask = _mm_set_epi32(
-                    ((cmp_mask >> 0) & 1),
-                    ((cmp_mask >> 1) & 1),
-                    ((cmp_mask >> 2) & 1),
-                    ((cmp_mask >> 3) & 1)
-                );
-
-                iter_vector = _mm_add_epi32(iter_vector, iter_add_mask);
+                
+                iter_add_mask = _mm256_castpd_si256(cmp_vector);
+                iter_vector = _mm256_add_epi64(iter_vector, iter_add_mask);
 
                 // y = 2 * x * y + y0
                 y = _mm256_mul_pd(_mm256_mul_pd(x, y), _mm256_set1_pd(2));
@@ -99,17 +91,25 @@ void ConstructMandelbrot_AVX2(PixelMatrix pixels, const ScreenParams* screen) {
                 iteration++;
             }
 
+            iter_vector = _mm256_xor_si256(iter_vector, _mm256_set1_epi64x(ALL_ONE_BITS));
+
+            // store 64 bit blocks into last 128 bits
+            // [0,a, 0,b, 0,c, 0,d] -> [0,0,0,0, a,b,c,d]
+            iter_vector = _mm256_permutevar8x32_epi32(
+                iter_vector,
+                _mm256_setr_epi32(6, 4, 2, 0, 1, 1, 1, 1)
+            );
+
             //
             // create result color
             //
 
-            iter_vector = _mm_sub_epi32(iter_vector, _mm_set1_epi32(1));
-
             // ? ? ? 123 -> 123 123 123 0
             __m128i result_color = _mm_shuffle_epi8(
-                iter_vector,
+                _mm256_castsi256_si128(iter_vector), // cast m256i to m128i with only last 128 bits
                 _mm_set_epi8(3, 12, 12, 12, 3, 8, 8, 8, 3, 4, 4, 4, 3, 0, 0, 0)
             );
+
             // 1 1 1 0 -> 1 1 1 255
             result_color = _mm_xor_si128(result_color, _mm_set1_epi32(255 << 8 * 3));
 

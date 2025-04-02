@@ -70,7 +70,7 @@ void HandleWindowEvent(sf::RenderWindow& window, sf::Texture& texture, ScreenPar
         // Window resize
         else if (const auto* resized = event->getIf<sf::Event::Resized>())
         {
-//            screen->scale *= (double)(resized->size.x * resized->size.y) / (screen->width * screen->height);
+            // TODO: fix center coords when resize windows
 
             screen->width  = resized->size.x;
             screen->height = resized->size.y;

@@ -35,22 +35,31 @@ for i in range(1, len(avx_data)):
 
 xs = [i for i in range(len(avx_data))]
 
-plt.figure(figsize=(15, 10))
 
-# plt.stem(xs, avx_data, color='b')
-# plt.bar(list(range(1, len(avx_data), 2)), avx_data, 1/(2*len(avx_data)), color="b")
-# plt.bar(list(range(2, len(avx_data), 2)), slow_data, 1/(2*len(avx_data)), color="r")
-# plt.bar([1, 2, 3], [1, 2, 3], 0.5, label="label 1", color="r")
+delta = []
+for i in range(len(avx_data)):
+    xtimes = Decimal(slow_data[i]) / Decimal(avx_data[i])
+    delta.append(xtimes)
+
+print('\n\n')
+print("delta array:", ', '.join("%.3f" % a for a in delta))
+
+delta.sort()
+
+print("Median: ", delta[len(delta)//2])
+print("Avg: ", sum(delta) / len(delta))
+
+plt.figure(figsize=(15, 10))
 
 plt.plot(xs, avx_data, 'r', label='AVX2')
 plt.plot(xs, slow_data, 'b', label='Slow')
 
-plt.xlabel('test number')
-plt.ylabel('clocks')
+plt.xlabel('scale = (1/2)^x')
+plt.ylabel('CPU clocks cycles')
 
 plt.legend(loc='upper center')
 plt.grid()
 
-plt.title("100 random benchmarks")
+plt.title("100 random benchmarks with increasing scale")
 
-plt.savefig('img/graph1.png')
+plt.savefig('img/graph2.png')
