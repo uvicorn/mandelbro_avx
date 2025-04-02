@@ -117,7 +117,7 @@ This:
 
 ## Benchmarks
 
-I ran 100 tests with scale increasing like `(1/2)^x` where x was the test number.
+I ran 100 tests with scale increasing like `(1/2)^x` where x was the test number (Point to draw was taken randomly from [-1;1]x[-1;1] square).
 
 Time measurements in processor cycles were performed via `__rdtsc` instruction.
 
